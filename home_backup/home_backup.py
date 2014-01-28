@@ -1,76 +1,84 @@
 #!/usr/bin/env python
 
 import os
-import shutil
-import time
-
+from shutil import rmtree
+import argparse
+import logging
 from sh import rsync
 
 
-# Functions
+#Parse arguments
+parser = argparse.ArgumentParser(
+    description=__doc__)
+
+parser.add_argument("BACKUPDIR", help="Specify the directory to backup.")
+parser.add_argument("DESTINATIONDIR", help="Specify the directory where the backup is stored.")
+parser.add_argument("-t", "--trash", help="Delete unnecessary files and empty the trash.", action="store_true")
+parser.add_argument("-e", "--exclude", help="Exlude the following directories from backup.", action="append")
+parser.add_argument("-l", "--logfile", help="Specify the logfile to monitor.")
+
+args = parser.parse_args()
+
+# Define variables
+backupdir = args.BACKUPDIR
+destinationdir = args.DESTINATIONDIR
+logfile = args.logfile
+
+#Logging
+rootLogger = logging.getLogger()
+logFormatter = logging.Formatter("%(asctime)s %(levelname)s  %(message)s")
+
+if logfile:
+    fileHandler = logging.FileHandler(logfile)
+    fileHandler.setFormatter(logFormatter)
+    rootLogger.addHandler(fileHandler)
+
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(logFormatter)
+rootLogger.addHandler(consoleHandler)
 
 
+# directory exist-check
 def check_dir_exist(os_dir):
     if not os.path.exists(os_dir):
         print os_dir, "does not exist."
         exit(1)
 
 
-def confirm():
-    gogo = raw_input("Continue? yes/no\n")
-    global exit_condition
-    if gogo == 'yes':
-        exit_condition = 0
-        return exit_condition
-    elif gogo == "no":
-        exit_condition = 1
-        return exit_condition
-    else:
-        print "Please answer with yes or no."
-        confirm()
-
-
-def delete_files(ending):
-    for r, d, f in os.walk(backup_path):
+# delete function
+def delete_files(ending, indirectory):
+    for r, d, f in os.walk(indirectory):
         for files in f:
             if files.endswith("." + ending):
-                os.remove(os.path.join(r, files))
+                try:
+                    os.remove(os.path.join(r, files))
+                    logging.INFO("Deleting", files)
+                except OSError:
+                    logging.warning("Could not delete", files)
+                    pass
 
 
-# Specify what and where to backup.
-backup_path = raw_input("What should be backed up today?\n")
-check_dir_exist(backup_path)
-print "Okay", backup_path, "will be saved."
-time.sleep(3)
+# Delete actual files first
+if args.trash:
+    file_types = ["tmp", "bak", "dmp"]
+    for file_type in file_types:
+        delete_files(file_type, backupdir)
+    # Empty trash can
+    try:
+        rmtree(os.path.expanduser("~/.local/share/Trash/files"))
+    except OSError:
+        logging.warning("Could not empty the trash.")
+        pass
 
-backup_to_path = raw_input("Where to backup?\n")
-check_dir_exist(backup_to_path)
-
-
-# Delete files first
-print "First, let's cleanup unnecessary files in the backup path."
-file_types = ["tmp", "bak", "dmp"]
-for file_type in file_types:
-    print "Delete", file_type, "files?"
-    confirm()
-    if exit_condition == 0:
-        delete_files(file_type)
-
-
-# Empty trash can
-print "Empty trash can?"
-confirm()
-if exit_condition == 0:
-    print "Emptying!"
-    shutil.rmtree(os.path.expanduser("~/.local/share/Trash/files"))
+# handle exclusions
+exclusions = []
+for argument in args.exclude:
+    exclusions.append("--exclude=%s" % argument)
 
 
 # Do the actual backup
-print "Doing the backup now!"
-confirm()
-if exit_condition == 1:
-        print "Aborting!"
-        exit(1)
+if logfile:
+    rsync("-auhv", exclusions, "--logfile=%s" % logfile, backupdir, destinationdir)
+else:
+    rsync("-auhv", exclusions, backupdir, destinationdir)
 
-rsync("-auhv", "--delete", "--exclude=lost+found", "--exclude=/sys", "--exclude=/tmp", "--exclude=/proc",
-      "--exclude=/mnt", "--exclude=/dev", "--exclude=/backup", backup_path, backup_to_path)
