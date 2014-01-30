@@ -52,9 +52,9 @@ def delete_files(ending, indirectory):
             if files.endswith("." + ending):
                 try:
                     os.remove(os.path.join(r, files))
-                    logging.INFO("Deleting", files)
+                    logging.info("Deleting {r}/{files}".format(r, files))
                 except OSError:
-                    logging.warning("Could not delete", files)
+                    logging.warning("Could not delete {r}/{files}".format(r, files))
                     pass
 
 
@@ -67,18 +67,22 @@ if args.trash:
     try:
         rmtree(os.path.expanduser("~/.local/share/Trash/files"))
     except OSError:
-        logging.warning("Could not empty the trash.")
+        logging.warning("Could not empty the trash or trash already empty.")
         pass
 
 # handle exclusions
 exclusions = []
-for argument in args.exclude:
-    exclusions.append("--exclude=%s" % argument)
+if args.exclude:
+    for argument in args.exclude:
+        exclusions.append("--exclude={}".format(argument))
 
 
 # Do the actual backup
-if logfile:
-    rsync("-auhv", exclusions, "--logfile=%s" % logfile, backupdir, destinationdir)
-else:
+logging.info("Starting rsync.")
+if logfile and exclusions:
+        rsync("-auhv", exclusions, "--log-file={}".format(logfile), backupdir, destinationdir)
+elif exclusions:
     rsync("-auhv", exclusions, backupdir, destinationdir)
+else:
+    rsync("-auhv", backupdir, destinationdir)
 
