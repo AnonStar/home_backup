@@ -16,6 +16,7 @@ parser.add_argument("DESTINATIONDIR", help="Specify the directory where the back
 parser.add_argument("-t", "--trash", help="Delete unnecessary files and empty the trash.", action="store_true")
 parser.add_argument("-e", "--exclude", help="Exlude the following directories from backup.", action="append")
 parser.add_argument("-l", "--logfile", help="Specify the logfile to monitor.")
+parser.add_argument("-q", "--quiet", help="Do not print to stdout.", action="store_true")
 
 args = parser.parse_args()
 
@@ -26,24 +27,26 @@ logfile = args.logfile
 
 #Logging
 rootLogger = logging.getLogger()
-logFormatter = logging.Formatter("%(asctime)s %(levelname)s  %(message)s")
-
+logFormatter = logging.Formatter("%(asctime)s - %(message)s")
+rootLogger.setLevel(logging.INFO)
 if logfile:
     fileHandler = logging.FileHandler(logfile)
     fileHandler.setFormatter(logFormatter)
     rootLogger.addHandler(fileHandler)
 
-consoleHandler = logging.StreamHandler()
-consoleHandler.setFormatter(logFormatter)
-rootLogger.addHandler(consoleHandler)
+if not args.quiet:
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(logFormatter)
+    rootLogger.addHandler(consoleHandler)
 
 
 # directory exist-check
 def check_dir_exist(os_dir):
     if not os.path.exists(os_dir):
-        print os_dir, "does not exist."
+        logging.error("{} does not exist.".format(os_dir))
         exit(1)
 
+check_dir_exist(backupdir)
 
 # delete function
 def delete_files(ending, indirectory):
@@ -52,9 +55,9 @@ def delete_files(ending, indirectory):
             if files.endswith("." + ending):
                 try:
                     os.remove(os.path.join(r, files))
-                    logging.info("Deleting {r}/{files}".format(r, files))
+                    logging.info("Deleting {}/{}".format(r, files))
                 except OSError:
-                    logging.warning("Could not delete {r}/{files}".format(r, files))
+                    logging.warning("Could not delete {}/{}".format(r, files))
                     pass
 
 
@@ -79,10 +82,15 @@ if args.exclude:
 
 # Do the actual backup
 logging.info("Starting rsync.")
-if logfile and exclusions:
-        rsync("-auhv", exclusions, "--log-file={}".format(logfile), backupdir, destinationdir)
-elif exclusions:
-    rsync("-auhv", exclusions, backupdir, destinationdir)
+if logfile and exclusions and args.quiet:
+    rsync("-auhv", exclusions, "--log-file={}".format(logfile), backupdir, destinationdir)
+elif logfile and exclusions:
+    print(rsync("-auhv", exclusions, "--log-file={}".format(logfile), backupdir, destinationdir))
+elif args.quiet and exclusions:
+    rsync("-av", exclusions, backupdir, destinationdir)
+elif logfile and args.quiet:
+    rsync("-av", "--log-file={}".format(logfile), backupdir, destinationdir)
 else:
-    rsync("-auhv", backupdir, destinationdir)
+    rsync("-av", backupdir, destinationdir)
 
+logging.info("done.")
