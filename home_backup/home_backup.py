@@ -62,25 +62,29 @@ def delete_files(ending, indirectory):
 
 
 # Delete actual files first
-if args.trash:
-    file_types = ["tmp", "bak", "dmp"]
-    for file_type in file_types:
-        delete_files(file_type, backupdir)
-    # Empty trash can
-    try:
-        rmtree(os.path.expanduser("~/.local/share/Trash/files"))
-    except OSError:
-        logging.warning("Could not empty the trash or trash already empty.")
-        pass
+def delete_file():
+    if args.trash:
+        file_types = ["tmp", "bak", "dmp"]
+        for file_type in file_types:
+            delete_files(file_type, backupdir)
+        # Empty trash can
+        try:
+            rmtree(os.path.expanduser("~/.local/share/Trash/files"))
+        except OSError:
+            logging.warning("Could not empty the trash or trash already empty.")
+            pass
 
-# handle exclusions
-exclusions = []
-if args.exclude:
-    for argument in args.exclude:
-        exclusions.append("--exclude={}".format(argument))
+def handle_exclusions():
+    # handle exclusions
+    exclusions = []
+    if args.exclude:
+        for argument in args.exclude:
+            exclusions.append("--exclude={}".format(argument))
 
 
 # Do the actual backup
+
+def main():
 logging.info("Starting rsync.")
 if logfile and exclusions and args.quiet:
     rsync("-auhv", exclusions, "--log-file={}".format(logfile), backupdir, destinationdir)
