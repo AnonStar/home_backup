@@ -48,10 +48,10 @@ class RsyncMail():
   """
   
   def load_SMTP_standards(self):
-    self.serverAdress = 'my@mail.com'
-    self.SMTPServer = 'localhost'
-    self.SMTPUser = 'user'
-    self.SMTPPassword = 'password'
+    self.serverAdress = 'sender@anonstar.org'
+    self.SMTPServer = 'anonstar.org'
+    self.SMTPUser = 'sender@anonstar.org'
+    self.SMTPPassword = 'MailSender!90'
     self.SMTPPort = 25  
     
   def parse_args(self):
@@ -70,6 +70,7 @@ class RsyncMail():
     parser.add_argument("-u", "--update", help="Keeps files in destination if they are more recent.", action="store_true")
     parser.add_argument("-d", "--debug", help="Generates a detailed rsync log.", action="store_true")
     parser.add_argument("-s", "--smtp", help="Loads the SMTP-Config from property file.")
+    parser.add_argument("--legacy", help="Support for some systems without the ability to change permissions", action="store_true")
 
     args = parser.parse_args()
 
@@ -146,7 +147,9 @@ class RsyncMail():
           
   # Assemble parameters
   def assemble_params(self):
-      params="-ah"
+      if not self.args.legacy:
+        params="-ah"
+      else: params="-rlth"
       params = params + "u" if self.update else params
       params = params + "v" if self.debug else params
       self.rsync_params.append(params)
@@ -236,7 +239,7 @@ class RsyncMail():
           self.logger.info(e.output)
           if self.mail:
               self.send_mail(self.mail, self.logfile, self.return_value, e.output)
-        exit(1)
+          exit(1)
       self.logger.info("Backup done. Rsync exited with returncode " + str(self.return_value))
       if self.mail:
           self.send_mail(self.mail, self.logfile, self.return_value, out)
