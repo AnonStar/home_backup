@@ -1,6 +1,6 @@
-An improved python backup script using rsync.
-A mail option is included to get informed with the backup results.
+This is just a simple backup script i wrote together for myself, mainly to learn python. If I get around to improve it, maybe it will someday be actually useful for some other people except me.
 
-Forked form rndmh3ro/home_backup
+Pascal Laub: improved the script, added a mail-option.
 
+-Sebastian Gumprich http://zufallsheld.de
 -Pascal Laub
