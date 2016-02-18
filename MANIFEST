@@ -2,3 +2,4 @@
 setup.py
 home_backup/__init__.py
 home_backup/home_backup.py
+home_backup/smtp_config.properties
