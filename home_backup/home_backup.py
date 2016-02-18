@@ -48,11 +48,11 @@ class RsyncMail():
   """
   
   def load_SMTP_standards(self):
-    self.serverAdress = 'sender@anonstar.org'
-    self.SMTPServer = 'anonstar.org'
-    self.SMTPUser = 'sender@anonstar.org'
-    self.SMTPPassword = 'MailSender!90'
-    self.SMTPPort = 25  
+    self.serverAdress = 'my@mail.com'
+    self.SMTPServer = 'localhost'
+    self.SMTPUser = 'user'
+    self.SMTPPassword = 'password'
+    self.SMTPPort = 25   
     
   def parse_args(self):
 
