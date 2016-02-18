@@ -236,6 +236,7 @@ class RsyncMail():
           self.logger.info(e.output)
           if self.mail:
               self.send_mail(self.mail, self.logfile, self.return_value, e.output)
+        exit(1)
       self.logger.info("Backup done. Rsync exited with returncode " + str(self.return_value))
       if self.mail:
           self.send_mail(self.mail, self.logfile, self.return_value, out)
