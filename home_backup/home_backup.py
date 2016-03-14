@@ -69,11 +69,11 @@ class RsyncMail():
     parser.add_argument("-m", "--mail", help="eMail-Adress whereto send the rsync-log to.")
     parser.add_argument("-u", "--update", help="Keeps files in destination if they are more recent.", action="store_true")
     parser.add_argument("-d", "--debug", help="Generates a detailed rsync log.", action="store_true")
-    parser.add_argument("-s", "--smtp", help="Loads the SMTP-Config from property file.")
+    parser.add_argument("-c", "--config", help="Loads the config from property file.")
     parser.add_argument("--legacy", help="Support for some systems without the ability to change permissions", action="store_true")
 
     args = parser.parse_args()
-
+    
     # Define variables
     self.backupdir = args.BACKUPDIR
     self.destinationdir = args.DESTINATIONDIR
@@ -84,7 +84,7 @@ class RsyncMail():
     self.rsync_params = ["rsync"]
     self.args = args
     self.logger = logging.getLogger("logger")
-
+    
     #Logging
     FORMAT = '%(asctime)-15s (%(levelname)s): %(message)s'
 
@@ -103,6 +103,17 @@ class RsyncMail():
         consoleHandler.setFormatter(console_format)
         consoleHandler.setLevel(logging.DEBUG) if self.debug else consoleHandler.setLevel(logging.INFO)
         self.logger.addHandler(consoleHandler)
+        
+    # Verify destionationdir
+    if self.destinationdir.lower() == 'auto':
+      self.load_destinations_from_config(self.args.config)
+      for key, destination in self.destinations:
+        if self.check_dir_exist(destination):
+          self.destinationdir = destination
+          break;
+      if self.destinationdir.lower() == 'auto':
+        self.logger.error("No AUTO-Dir exists! Exiting...")
+        exit(1);
          
   # directory exist-check
   def check_dir_exist(self, os_dir):
@@ -159,6 +170,15 @@ class RsyncMail():
       self.rsync_params.append(self.backupdir) 
       self.rsync_params.append(self.destinationdir)
       self.logger.debug(self.rsync_params)
+  
+  def load_destinations_from_config(self, path):
+    try:
+      config = ConfigParser.RawConfigParser()
+      config.read(path)
+      self.destinations = config.items('destinations')
+    except:
+      self.logger.error("Couldn't load destinations from config. Exiting...")
+      exit(1)
       
   def load_SMTP_Server_Config(self, path):
     try:
@@ -177,8 +197,8 @@ class RsyncMail():
   # Params: Recipient, Logfile, Returncode, Output
   def send_mail(self, recipient, logfile, return_value, output):
     # Load the SMTP Config from property file if existing
-    if self.args.smtp and self.check_dir_exist(self.args.smtp):
-      self.load_SMTP_Server_Config(self.args.smtp)
+    if self.args.config and self.check_dir_exist(self.args.config):
+      self.load_SMTP_Server_Config(self.args.config)
     else: 
       self.load_SMTP_standards()
     if self.mail:
