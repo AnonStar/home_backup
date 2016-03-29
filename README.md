@@ -1,4 +1,7 @@
-This is just a simple backup script i wrote together for myself, mainly to learn python. If I get around to improve it, maybe it will someday be actually useful for some other people except me.
+This is a backup-script written in python using rsync. It is tested on Ubuntu 14.04 and Arch Linux (using --legacy).
+
+NOTE: This is NOT a recommendet programming practice and it's definetly not optimal. While getting more weight it bothers me, that I hadn't did it optimal from the beginning. Maybe I will refactor it, we will see ;)
+But it's working quite good.
 
 Usage:
 
@@ -64,7 +67,7 @@ optional arguments:
 
 Changelog:
 
-02/15: Pascal Laub: improved the script, added a mail-option.
+03/15: Pascal Laub: improved the script, added some options including incremental and differential backups.
 
 -Sebastian Gumprich http://zufallsheld.de
 -Pascal Laub
