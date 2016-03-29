@@ -5,7 +5,7 @@ import os
 import argparse
 import logging
 import subprocess
-import ConfigParser 
+import ConfigParser
 import datetime
 from shutil import rmtree
 from email.mime.text import MIMEText
@@ -120,12 +120,12 @@ class RsyncMail():
           break;
       if self.target.lower() == 'auto':
         self.logger.error("No AUTO-Dir exists! Exiting...")
+        if self.mail:
+                self.send_mail(self.mail, self.logfile, 1, "No AUTO-Dir exists! Exiting...")
         exit(1);
-    if self.args.date and not self.args.link:
+    if self.args.date:
       self.target = self.target + '/' + self.date
-    elif self.args.date and not self.args.link.lower == 'last':
-      self.target = self.target + '/' + self.date
-      
+
   # directory exist-check
   def check_dir_exist(self, os_dir):
       if os.path.exists(os_dir):
@@ -166,25 +166,29 @@ class RsyncMail():
       if self.args.exclude:
         for argument in self.args.exclude:
           self.rsync_params.append("--exclude={}".format(argument))
-          
+
   def handle_linking(self):
       # handle exclusions
       if self.args.link:
+        if self.args.date:
+                last_backup_dir=self.target.replace("/"+self.date,"")
+                self.logger.debug("Date set. Have to go one level up: %s" % last_backup_dir)
+        else:
+                last_backup_dir=self.target
+                self.logger.debug("Date unset. Using path: %s" % last_backup_dir)
         if self.args.link.lower() == 'last':
-          if os.path.isfile(self.target + '/.last-backup.cfg'):
-            file = open(self.target + '/.last-backup.cfg', r)
+          if self.check_dir_exist(last_backup_dir +  '/.last-backup.cfg'):
+            file = open(last_backup_dir +  '/.last-backup.cfg', 'r')
             last_backup = file.readline()
             file.close()
-            self.args.link = self.target + '/' + last_backup
-            if self.args.date:
-              self.target = self.target + '/' + self.date
+            self.args.link = last_backup_dir + '/'  + last_backup
           else:
-            self.logger.error("There is no last backup logged in " + self.target + "/.last-backup.cfg! Exiting...")
+            self.logger.error("There is no last backup logged in " + last_backup_dir + "/.last-backup.cfg! Exiting...")
             if self.mail:
-              self.send_mail(self.mail, self.logfile, 1, "There is no last backup logged in " + self.target + "/.last-backup.cfg! Exiting...")
+              self.send_mail(self.mail, self.logfile, 1, "There is no last backup logged in " + last_backup_dir + "/.last-backup.cfg! Exiting...")
             exit(1)
         self.configure_linking()
-          
+
   def configure_linking(self):
     if self.check_dir_exist(self.args.link):
       self.logger.info("Linking unchanged files in the backup target " + self.target + " to the backup " + self.args.link)
@@ -194,7 +198,7 @@ class RsyncMail():
       if self.mail:
         self.send_mail(self.mail, self.logfile, 1, "The Main-Backup-Directory " + self.args.link + " does not exist! Exiting...")
       exit(1)
-       
+
 
   # Assemble parameters
   def assemble_params(self):
