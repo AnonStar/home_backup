@@ -4,14 +4,17 @@ Usage:
 
 rsync_mail.py [-h] [-t] [-e EXCLUDE] [-l LOGFILE] [-q] [-m MAIL] [-u]
                      [-d] [-c CONFIG] [--delete] [--legacy] [--check]
-                     [--link LINK]
+                     [--link LINK] [--date]
                      SOURCE TARGET
+                     
 
 positional arguments:
 
   SOURCE                Specify the directory to backup (SOURCE).
+  
   TARGET                Specify the directory where the backup should be
                         stored (TARGET).
+                        
 
 optional arguments:
 
@@ -44,17 +47,19 @@ optional arguments:
   --legacy              Support for some systems without the ability to change
                         permissions
                         
-  --check               Checks the backup byte-by-byte. This can take a while.
-                        This option verifies that a backup is fully identical
-                        with the source.
+  --check               Checks the transfered files byte-by-byte with a
+                        generated checksum. This can take a while. This option
+                        verifies that a backup is fully identical with the
+                        source.
                         
   --link LINK           Creates a new Backup and only saves differences to the
                         specified main-backup. For an incremental backup use
-                        this option with the parameter ->last<-. You can use
-                        the parameter ->date<- as the Destination to create a
-                        new Folder with todays date on the same level as the
-                        specified main-backup.
-                      
+                        this option with the argument ->last<-. The script
+                        then looksup the last backup in the target directory.
+                        
+  --date                Saves the backup into a subfolder named after the
+                        actual date in format yyyy-MM-dd into the target
+                        directory.
 
 
 Changelog:
