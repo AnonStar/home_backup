@@ -5,7 +5,8 @@ import os
 import argparse
 import logging
 import subprocess
-import ConfigParser
+import ConfigParser 
+import datetime
 from shutil import rmtree
 from email.mime.text import MIMEText
 #from smtplib import SMTP_SSL as SMTP       # this invokes the secure SMTP protocol (port 465, uses SSL)
@@ -18,65 +19,69 @@ class RsyncMail():
   A logfile and a mail can be specified to be informed about the backup result.
   In order to use the mail option SMTP-informations have to be specified.
   You can either do this by editing the load_SMTP_standards function
-  or by handing over a standard property file with a SMTPSection and the 
+  or by handing over a standard property file with a SMTPSection and the
   following parameters:
-  
+
     server.mail:      Mail-Adress of the sender, e.g. my@mail.com
     server.adress:    The hostname of the SMTP-server, e.g. localhost or smtp.mail.com
     server.user:      The username for logging in
     server.password:  The users password (unencrypted)
     server.port:      The SMTP-Port
-      
+
   The connection to the mail server will be encrypted with TLS.
   If you want to use SSL you have to uncomment the line
-  
+
     #from smtplib import SMTP_SSL as SMTP
-  
+
   and comment the line
-  
+
     from smtplib import SMTP
-  
+
   in the import-section.
-  
+
   In order to use encrypted passwords you have to implement a service.
   You could use yagmail to do this. For more information regarding this topic
   read these:
-  
+
   http://stackoverflow.com/questions/31827094/how-to-use-encrypted-password-in-python-email
-  
-  https://github.com/kootenpv/yagmail   
+
+  https://github.com/kootenpv/yagmail
   """
-  
+
   def load_SMTP_standards(self):
     self.serverAdress = 'my@mail.com'
     self.SMTPServer = 'localhost'
     self.SMTPUser = 'user'
     self.SMTPPassword = 'password'
-    self.SMTPPort = 25   
-    
+    self.SMTPPort = 25
+
   def parse_args(self):
 
     #Parse arguments
     parser = argparse.ArgumentParser(
         description=__doc__)
 
-    parser.add_argument("BACKUPDIR", help="Specify the directory to backup.")
-    parser.add_argument("DESTINATIONDIR", help="Specify the directory where the backup is stored.")
+    parser.add_argument("SOURCE", help="Specify the directory to backup (SOURCE).")
+    parser.add_argument("TARGET", help="Specify the directory where the backup should be stored (TARGET).")
     parser.add_argument("-t", "--trash", help="Delete unnecessary files and empty the trash.", action="store_true")
     parser.add_argument("-e", "--exclude", help="Exlude the following directories from backup.", action="append")
     parser.add_argument("-l", "--logfile", help="Specify the logfile to monitor.")
     parser.add_argument("-q", "--quiet", help="Do not print to stdout.", action="store_true")
-    parser.add_argument("-m", "--mail", help="eMail-Adress whereto send the rsync-log to.")
+    parser.add_argument("-m", "--mail", help="eMail-Adress whereto send the rsync-log to. Use this with the --config option to provide a Properties-File with the SMTP-Server-Config.")
     parser.add_argument("-u", "--update", help="Keeps files in destination if they are more recent.", action="store_true")
     parser.add_argument("-d", "--debug", help="Generates a detailed rsync log.", action="store_true")
     parser.add_argument("-c", "--config", help="Loads the config from property file.")
+    parser.add_argument("--delete", help="Deletes files and folders in the backup which has been deleted in the source.", action="store_true")
     parser.add_argument("--legacy", help="Support for some systems without the ability to change permissions", action="store_true")
+    parser.add_argument("--check", help="Checks the transfered files byte-by-byte with a generated checksum. This can take a while. This option verifies that a backup is fully identical with the source.", action="store_true")
+    parser.add_argument("--link", help="Creates a new Backup and only saves differences to the specified main-backup. For an incremental backup use this option with the argument ->last<-. The script then looksup the last backup in the target directory.")
+    parser.add_argument("--date", help="Saves the backup into a subfolder named after the actual date in format yyyy-MM-dd into the target directory.", action="store_true")
 
     args = parser.parse_args()
-    
+
     # Define variables
-    self.backupdir = args.BACKUPDIR
-    self.destinationdir = args.DESTINATIONDIR
+    self.source = args.SOURCE
+    self.target = args.TARGET
     self.logfile = args.logfile
     self.mail = args.mail
     self.update = args.update
@@ -84,7 +89,9 @@ class RsyncMail():
     self.rsync_params = ["rsync"]
     self.args = args
     self.logger = logging.getLogger("logger")
-    
+    self.now = datetime.datetime.now()
+    self.date = self.now.strftime("%Y-%m-%d")
+
     #Logging
     FORMAT = '%(asctime)-15s (%(levelname)s): %(message)s'
 
@@ -96,28 +103,32 @@ class RsyncMail():
           logging.basicConfig(filename=self.logfile, filemode='w', level=logging.INFO, format=FORMAT, datefmt='%Y.%m.%d %H:%M:%S')
       else:
           logging.basicConfig(filename=self.logfile, filemode='w', level=logging.DEBUG, format=FORMAT, datefmt='%Y.%m.%d %H:%M:%S')
-          
+
     if not self.args.quiet:
         consoleHandler = logging.StreamHandler()
         console_format = logging.Formatter(FORMAT)
         consoleHandler.setFormatter(console_format)
         consoleHandler.setLevel(logging.DEBUG) if self.debug else consoleHandler.setLevel(logging.INFO)
         self.logger.addHandler(consoleHandler)
-        
+
     # Verify destionationdir
-    if self.destinationdir.lower() == 'auto':
+    if self.target.lower() == 'auto':
       self.load_destinations_from_config(self.args.config)
       for key, destination in self.destinations:
         if self.check_dir_exist(destination):
-          self.destinationdir = destination
+          self.target = destination
           break;
-      if self.destinationdir.lower() == 'auto':
+      if self.target.lower() == 'auto':
         self.logger.error("No AUTO-Dir exists! Exiting...")
         exit(1);
-         
+    if self.args.date and not self.args.link:
+      self.target = self.target + '/' + self.date
+    elif self.args.date and not self.args.link.lower == 'last':
+      self.target = self.target + '/' + self.date
+      
   # directory exist-check
   def check_dir_exist(self, os_dir):
-      if os.path.exists(os_dir): 
+      if os.path.exists(os_dir):
           self.logger.debug("{} exists.".format(os_dir))
           return True
       else:
@@ -151,11 +162,40 @@ class RsyncMail():
               pass
 
   def handle_exclusions(self):
-      # handle exclusions 
+      # handle exclusions
       if self.args.exclude:
         for argument in self.args.exclude:
           self.rsync_params.append("--exclude={}".format(argument))
           
+  def handle_linking(self):
+      # handle exclusions
+      if self.args.link:
+        if self.args.link.lower() == 'last':
+          if os.path.isfile(self.target + '/.last-backup.cfg'):
+            file = open(self.target + '/.last-backup.cfg', r)
+            last_backup = file.readline()
+            file.close()
+            self.args.link = self.target + '/' + last_backup
+            if self.args.date:
+              self.target = self.target + '/' + self.date
+          else:
+            self.logger.error("There is no last backup logged in " + self.target + "/.last-backup.cfg! Exiting...")
+            if self.mail:
+              self.send_mail(self.mail, self.logfile, 1, "There is no last backup logged in " + self.target + "/.last-backup.cfg! Exiting...")
+            exit(1)
+        self.configure_linking()
+          
+  def configure_linking(self):
+    if self.check_dir_exist(self.args.link):
+      self.logger.info("Linking unchanged files in the backup target " + self.target + " to the backup " + self.args.link)
+      self.rsync_params.append("--link-dest=" + self.args.link)
+    else:
+      self.logger.error("The Main-Backup-Directory " + self.args.link + " does not exist! Exiting...")
+      if self.mail:
+        self.send_mail(self.mail, self.logfile, 1, "The Main-Backup-Directory " + self.args.link + " does not exist! Exiting...")
+      exit(1)
+       
+
   # Assemble parameters
   def assemble_params(self):
       if not self.args.legacy:
@@ -163,14 +203,18 @@ class RsyncMail():
       else: params="-rlth"
       params = params + "u" if self.update else params
       params = params + "v" if self.debug else params
+      params = params + "c" if self.args.check else params
       self.rsync_params.append(params)
       if self.logfile:
         self.rsync_params.append("--log-file=" + self.logfile)
+      if self.args.delete:
+        self.rsync_params.append("--delete")
+      self.handle_linking()
       self.handle_exclusions()
-      self.rsync_params.append(self.backupdir) 
-      self.rsync_params.append(self.destinationdir)
+      self.rsync_params.append(self.source)
+      self.rsync_params.append(self.target)
       self.logger.debug(self.rsync_params)
-  
+
   def load_destinations_from_config(self, path):
     try:
       config = ConfigParser.RawConfigParser()
@@ -179,7 +223,7 @@ class RsyncMail():
     except:
       self.logger.error("Couldn't load destinations from config. Exiting...")
       exit(1)
-      
+
   def load_SMTP_Server_Config(self, path):
     try:
       config = ConfigParser.RawConfigParser()
@@ -192,14 +236,14 @@ class RsyncMail():
     except:
       self.mail = False
       self.logger.error("Couldn't load SMTP-Config. Skipping mail...")
-       
+
   # Mail mit Log senden
   # Params: Recipient, Logfile, Returncode, Output
   def send_mail(self, recipient, logfile, return_value, output):
     # Load the SMTP Config from property file if existing
     if self.args.config and self.check_dir_exist(self.args.config):
       self.load_SMTP_Server_Config(self.args.config)
-    else: 
+    else:
       self.load_SMTP_standards()
     if self.mail:
       if logfile:
@@ -231,23 +275,23 @@ class RsyncMail():
           self.logger.error("Sending mail failed! Error: %s" % e)
       finally:
           self.conn.close()
- 
+
   # Do the actual backup
   def main(self):
       self.parse_args()
       self.return_value = 0
-      if not self.check_dir_exist(self.backupdir):
-          self.logger.error("The Backup-Directory " + self.backupdir + " does not exist! Exiting...")
+      if not self.check_dir_exist(self.source):
+          self.logger.error("The Backup-Directory " + self.source + " does not exist! Exiting...")
           if self.mail:
-              self.send_mail(self.mail, self.logfile, 1, "The Backup-Directory " + self.backupdir + " does not exist! Exiting...")
+              self.send_mail(self.mail, self.logfile, 1, "The Backup-Directory " + self.source + " does not exist! Exiting...")
           exit(1)
       self.assemble_params();
       if self.args.trash:
           self.delete_temp();
-      if self.logfile: 
-          self.logger.info("Saving logfile to " + self.logfile) 
-      else: 
-          self.logger.info("Starting rsync without a logfile.")              
+      if self.logfile:
+          self.logger.info("Saving logfile to " + self.logfile)
+      else:
+          self.logger.info("Starting rsync without a logfile.")
       try:
           out = subprocess.check_output(self.rsync_params, stderr=subprocess.STDOUT, shell=False)
           self.logger.info(out)
@@ -263,6 +307,10 @@ class RsyncMail():
       self.logger.info("Backup done. Rsync exited with returncode " + str(self.return_value))
       if self.mail:
           self.send_mail(self.mail, self.logfile, self.return_value, out)
-
+      if os.path.isfile(self.target + '/../.last-backup.cfg'):
+        os.remove(self.target + '/../.last-backup.cfg')
+      file = open(self.target + '/../.last-backup.cfg', 'w')
+      file.write(self.date)
+      file.close()
 x = RsyncMail();
 x.main();
