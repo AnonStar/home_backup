@@ -1,4 +1,4 @@
-This is just a simple backup script i wrote together for myself, mainly to learn python. If I get around to improve it, maybe it will someday be actually useful for some other people except me.
+This is a backup-script written in python using rsync. It is tested on Ubuntu 14.04 and Arch Linux (using --legacy). It can backup incremental and differential. It will send you an email and summarize the backup.
 
 Usage:
 
