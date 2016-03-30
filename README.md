@@ -1,8 +1,4 @@
-This is a backup-script written in python using rsync. It is tested on Ubuntu 14.04 and Arch Linux (using --legacy).
-It can backup incremental and differential. It will send you an email and summarize the backup.
-
-NOTE: This is NOT a recommendet programming practice and it's definetly not optimal. While getting more weight it bothers me, that I hadn't did it optimal from the beginning. Maybe I will refactor it, we will see ;)
-But it's working quite good.
+This is a backup-script written in python using rsync. It is tested on Ubuntu 14.04 and Arch Linux (using --legacy). It can backup incremental and differential. It will send you an email and summarize the backup.
 
 Usage:
 
@@ -68,7 +64,7 @@ optional arguments:
 
 Changelog:
 
-03/15: Pascal Laub: improved the script, added some options including incremental and differential backups.
+02/15: Pascal Laub: improved the script, added a mail-option.
 
 -Sebastian Gumprich http://zufallsheld.de
 -Pascal Laub
