@@ -76,6 +76,8 @@ class RsyncMail():
     parser.add_argument("--check", help="Checks the transfered files byte-by-byte with a generated checksum. This can take a while. This option verifies that a backup is fully identical with the source.", action="store_true")
     parser.add_argument("--link", help="Creates a new Backup and only saves differences to the specified main-backup. For an incremental backup use this option with the argument ->last<-. The script then looksup the last backup in the target directory.")
     parser.add_argument("--date", help="Saves the backup into a subfolder named after the actual date in format yyyy-MM-dd into the target directory.", action="store_true")
+    parser.add_argument("--convert", help="Converts filenames into another format if you are transferring umlauts. E.g. --convert utf8")
+    parser.add_argument("--backup", help="Saves the Saves the changed and deleted files into the .backup folder.", action="store_true")
 
     args = parser.parse_args()
 
@@ -208,11 +210,16 @@ class RsyncMail():
       params = params + "u" if self.update else params
       params = params + "v" if self.debug else params
       params = params + "c" if self.args.check else params
+      params = params + "b" if self.args.backup else params
       self.rsync_params.append(params)
       if self.logfile:
         self.rsync_params.append("--log-file=" + self.logfile)
       if self.args.delete:
         self.rsync_params.append("--delete")
+      if self.args.convert:
+        self.rsync_params.append("--iconv=" + self.args.convert)
+      if self.args.backup:
+        self.rsync_params.append("--backup-dir=" + self.target.replace("/"+self.date,"") + "/.backup/" + self.date
       self.handle_linking()
       self.handle_exclusions()
       self.rsync_params.append(self.source)
