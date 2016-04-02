@@ -316,6 +316,6 @@ class RsyncMail():
       file = open(self.target + '/../.last-backup.cfg', 'w')
       file.write(self.date)
       file.close()
-      logger.debug("Backup Script finished at last line of code.")
+      self.logger.debug("Backup Script finished at last line of code.")
 x = RsyncMail();
 x.main();
