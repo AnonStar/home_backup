@@ -77,7 +77,7 @@ class RsyncMail():
     parser.add_argument("--link", help="Creates a new Backup and only saves differences to the specified main-backup. For an incremental backup use this option with the argument ->last<-. The script then looksup the last backup in the target directory.")
     parser.add_argument("--date", help="Saves the backup into a subfolder named after the actual date in format yyyy-MM-dd into the target directory.", action="store_true")
     parser.add_argument("--convert", help="Converts filenames into another format if you are transferring umlauts. E.g. --convert utf8")
-    parser.add_argument("--backup", help="Saves the Saves the changed and deleted files into the .backup folder.", action="store_true")
+    parser.add_argument("--backup", help="Saves the changed and deleted files into the .backup folder.", action="store_true")
 
     args = parser.parse_args()
 
