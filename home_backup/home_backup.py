@@ -183,7 +183,7 @@ class RsyncMail():
         if self.args.link.lower() == 'last':
           if self.check_dir_exist(last_backup_dir +  '/.last-backup.cfg'):
             file = open(last_backup_dir +  '/.last-backup.cfg', 'r')
-            last_backup = file.readline()
+            last_backup = file.read().splitlines()[0]
             file.close()
             self.args.link = last_backup
           else:
@@ -228,7 +228,7 @@ class RsyncMail():
       if self.args.convert:
         self.rsync_params.append("--iconv=" + self.args.convert)
       if self.args.backup:
-        self.rsync_params.append("--backup-dir=" + self.target.replace("/"+self.date,"") + "/.backup/" + self.date
+        self.rsync_params.append("--backup-dir=" + self.target.replace("/"+self.date,"") + "/.backup/" + self.date)
       self.handle_linking()
       self.handle_exclusions()
       self.rsync_params.append(self.source)
@@ -268,8 +268,7 @@ class RsyncMail():
     if self.mail:
       if logfile:
         try: # Try to read the last 20 lines of the logfile
-          cmd = 'tail -n20 ' + logfile
-          out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=False)
+          out = subprocess.check_output(['tail','-n20',logfile], stderr=subprocess.STDOUT, shell=False)
           msg = MIMEText(out)
         except subprocess.CalledProcessError as e:
           if output:
