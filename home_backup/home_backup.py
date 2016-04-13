@@ -78,7 +78,9 @@ class RsyncMail():
     parser.add_argument("--date", help="Saves the backup into a subfolder named after the actual date in format yyyy-MM-dd into the target directory.", action="store_true")
     parser.add_argument("--convert", help="Converts filenames into another format if you are transferring umlauts. E.g. --convert utf8")
     parser.add_argument("--backup", help="Saves the changed and deleted files into the .backup folder.", action="store_true")
-
+    parser.add_argument("--ssh", help="In order to backup to another computer over ssh. Do not use this with --legacy. Place your ssh-key on the target machine in order to let rsync connect without a password or use --private_key. Use this with target-pattern: user@machine:/target/dir.", action="store_true")
+    parser.add_argument("--private_key", help="If you wanto to backup to an external machine using --ssh you may send your private keyfile for authentication. Use this option with the absolute path to your keyfile.")
+    
     args = parser.parse_args()
 
     # Define variables
@@ -211,7 +213,14 @@ class RsyncMail():
       params = params + "v" if self.debug else params
       params = params + "c" if self.args.check else params
       params = params + "b" if self.args.backup else params
+      params = params + "z" if self.args.ssh else params
       self.rsync_params.append(params)
+      if self.args.ssh:
+        if self.args.private_key:
+          self.rsync_params.append("'ssh -i " + self.args.private_key + "'")
+        else:
+          self.rsync_params.append("ssh")
+        self.rsync_params.append("--numeric-ids")
       if self.logfile:
         self.rsync_params.append("--log-file=" + self.logfile)
       if self.args.delete:
@@ -258,11 +267,15 @@ class RsyncMail():
       self.load_SMTP_standards()
     if self.mail:
       if logfile:
-        # Open the logfile for reading.
-        fp = open(self.logfile, 'rb')
-        # Create a text/plain message
-        msg = MIMEText(fp.read())
-        fp.close()
+        try: # Try to read the last 20 lines of the logfile
+          cmd = 'tail -n20 ' + logfile
+          out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=False)
+          msg = MIMEText(out)
+        except subprocess.CalledProcessError as e:
+          if output:
+            msg = MIMEText(output)
+          else:
+            msg = MIMEText("The Backup is done.")
       elif output:
         msg = MIMEText(output)
       else:
