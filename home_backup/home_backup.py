@@ -240,8 +240,8 @@ class RsyncMail():
       config = ConfigParser.RawConfigParser()
       config.read(path)
       self.destinations = config.items('destinations')
-    except:
-      self.logger.error("Couldn't load destinations from config. Exiting...")
+    except ConfigParser.Error as e:
+      self.logger.error("Couldn't load destinations from config. Exiting... Error: %s" % e)
       exit(1)
 
   def load_SMTP_Server_Config(self, path):
