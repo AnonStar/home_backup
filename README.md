@@ -2,19 +2,12 @@ This is a backup-script written in python using rsync. It is tested on Ubuntu 14
 
 Usage:
 
-rsync_mail.py [-h] [-t] [-e EXCLUDE] [-l LOGFILE] [-q] [-m MAIL] [-u]
-                     [-d] [-c CONFIG] [--delete] [--legacy] [--check]
-                     [--link LINK] [--date]
-                     SOURCE TARGET
-                     
-
 positional arguments:
 
   SOURCE                Specify the directory to backup (SOURCE).
   
   TARGET                Specify the directory where the backup should be
                         stored (TARGET).
-                        
 
 optional arguments:
 
@@ -60,6 +53,25 @@ optional arguments:
   --date                Saves the backup into a subfolder named after the
                         actual date in format yyyy-MM-dd into the target
                         directory.
+                        
+  --convert CONVERT     Converts filenames into another format if you are
+                        transferring umlauts. E.g. --convert utf8
+                        
+  --backup              Saves the changed and deleted files into the .backup
+                        folder.
+                        
+  --ssh                 In order to backup to another computer over ssh. Do
+                        not use this with --legacy. Place your ssh-key on the
+                        target machine in order to let rsync connect without a
+                        password or use --private_key. Use this with target-
+                        pattern: user@machine:/target/dir.
+                        
+  --private_key PRIVATE_KEY
+                        If you wanto to backup to an external machine using
+                        --ssh you may send your private keyfile for
+                        authentication. Use this option with the absolute path
+                        to your keyfile.
+                        
 
 
 Changelog:
