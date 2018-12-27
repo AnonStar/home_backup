@@ -2,12 +2,12 @@ from distutils.core import setup
 
 setup(
     name='home_backup',
-    version='1.0',
+    version='2.0',
     packages=['home_backup'],
     url='http://zufallsheld.de/2013/09/29/python-backup-script-with-rsync/',
     license='GPL 3.0',
-    author='Sebastian Gumprich',
-    author_email='sebastian.gumprich@38.de',
-    description='simple python backup script',
+    author='René Pascal Laub',
+    author_email='dev@pascal-laub-de',
+    description='advanced rsync backup script written in python',
     long_description=open('README.md').read()
 )
