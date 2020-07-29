@@ -314,7 +314,7 @@ class RsyncMail():
       if os.path.isfile(self.target + '/../.last-backup.cfg'):
         os.remove(self.target + '/../.last-backup.cfg')
       file = open(self.target + '/../.last-backup.cfg', 'w')
-      file.write(os.path.dirname(self.target))
+      file.write(os.path.abspath(self.target))
       file.close()
       self.logger.debug("Backup Script finished at last line of code.")
 x = RsyncMail();
